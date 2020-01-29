@@ -9,6 +9,8 @@ import (
 
 var fVersion = flag.Bool("V", false, "display version info")
 
+// Version of the application, changed at release time by recompiling
+// the code.
 var Version = "devel"
 
 func allCheck() {
