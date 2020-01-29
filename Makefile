@@ -1,3 +1,4 @@
+GOPATH?=~/go
 GOX=$(GOPATH)/bin/gox
 
 all:
