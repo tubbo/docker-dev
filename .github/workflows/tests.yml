@@ -1,0 +1,13 @@
+name: Tests
+on: [push]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: linux osx
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-go@v1
+      - run: make test
+        env:
+          GOOS: ${{ matrix.os }}

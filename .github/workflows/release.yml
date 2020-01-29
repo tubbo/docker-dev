@@ -1,0 +1,37 @@
+name: Release
+on:
+  push:
+    tags: [v*]
+jobs:
+  publish:
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-go@v1
+      - run: make release
+        env:
+          RELEASE: ${{ github.ref }}
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+      - name: Upload macOS Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1.0.1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./docker-dev-${{ github.ref }}-darwin-amd64.zip
+          asset_name: docker-dev-${{ github.ref }}-macos-amd64.zip
+          asset_content_type: application/zip
+      - name: Upload Linux Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1.0.1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./docker-dev-${{ github.ref }}-linux-amd64.tar.gz
+          asset_name: docker-dev-${{ github.ref }}-linux-amd64.tar.gz
+          asset_content_type: application/gzip

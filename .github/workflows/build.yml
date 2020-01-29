@@ -1,0 +1,16 @@
+name: Build
+on:
+  push:
+    branches: [master]
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: linux darwin
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-go@v1
+      - run: make
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: amd64
