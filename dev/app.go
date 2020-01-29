@@ -232,6 +232,16 @@ func (a *App) Log() string {
 	return buf.String()
 }
 
+// fileExists checks if a file exists and is not a directory before we
+// try using it to prevent further errors.
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
 const executionShell = `exec bash -c '
 cd %s
 
@@ -251,21 +261,42 @@ if test -e .powenv; then
 	source .powenv
 fi
 
-if test -e Gemfile && bundle exec puma -V &>/dev/null; then
-	exec bundle exec puma -C $CONFIG --tag puma-dev:%s -w $WORKERS -t 0:$THREADS -b unix:%s
-fi
-
-exec puma -C $CONFIG --tag puma-dev:%s -w $WORKERS -t 0:$THREADS -b unix:%s'
+exec docker-compose up -d
 `
 
 func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
+	var dotenv map[string]string
+
 	tmpDir := filepath.Join(dir, "tmp")
 	err := os.MkdirAll(tmpDir, 0755)
 	if err != nil {
 		return nil, err
 	}
 
-	socket := filepath.Join(tmpDir, fmt.Sprintf("puma-dev-%d.sock", os.Getpid()))
+	envfile, err := ioutil.ReadFile(filepath.Join(dir, ".env"))
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err := os.Stat(filepath.Join(dir, "docker-compose.yml"))
+
+	if os.IsNotExist(err) {
+		return nil, err
+	}
+
+	contents := string(envfile)
+	lines := strings.Split(contents, "\n")
+
+	for _, line := range lines {
+		statement := strings.Split(line, "=")
+		key := statement[0]
+		value := statement[1]
+		dotenv[key] = value
+	}
+
+	port := dotenv["PORT"]
+	socket := fmt.Sprintf("localhost:%s", port)
 
 	shell := os.Getenv("SHELL")
 
@@ -274,8 +305,7 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		shell = "/bin/bash"
 	}
 
-	cmd := exec.Command(shell, "-l", "-i", "-c",
-		fmt.Sprintf(executionShell, dir, name, socket, name, socket))
+	cmd := exec.Command(shell, "-l", "-i", "-c", fmt.Sprintf(executionShell, dir))
 
 	cmd.Dir = dir
 
@@ -339,7 +369,7 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 				fmt.Printf("! Detecting app '%s' dying on start\n", name)
 				return fmt.Errorf("app died before booting")
 			case <-ticker.C:
-				c, err := net.Dial("unix", socket)
+				c, err := net.Dial("tcp", socket)
 				if err == nil {
 					c.Close()
 					app.eventAdd("app_ready")

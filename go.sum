@@ -8,6 +8,8 @@ github.com/kardianos/osext v0.0.0-20151222153229-29ae4ffbc9a6 h1:yZAE+xNuc/2gmWV
 github.com/kardianos/osext v0.0.0-20151222153229-29ae4ffbc9a6/go.mod h1:1NbS8ALrpOvjt0rHPNLyCIeMtbizbir8U//inJ+zuB8=
 github.com/miekg/dns v0.0.0-20160726032027-db96a2b759cd h1:CeapLRDOCwa+mOTigsBvhGS0TfEN8VchyBnh3f6QFtY=
 github.com/miekg/dns v0.0.0-20160726032027-db96a2b759cd/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
+github.com/puma/puma-dev v0.0.0-20191230234050-7d4d62682462 h1:I4LCJBATYd6RrOXP3qc9W/X40xwdpeMxR1kmFP1dMUY=
+github.com/puma/puma-dev v0.0.0-20191230234050-7d4d62682462/go.mod h1:AQ3CPwDnqJRVYo78eWctZyrQE5RMHwdyZ+wIbedccQg=
 github.com/stretchr/testify v1.1.4-0.20160221104443-1f4a1643a57e/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/vektra/errors v0.0.0-20140903201135-c64d83aba85a h1:lUVfiMMY/te9icPKBqOKkBIMZNxSpM90dxokDeCcfBg=
 github.com/vektra/errors v0.0.0-20140903201135-c64d83aba85a/go.mod h1:KUxJS71XlMs+ztT+RzsLRoWUQRUpECo/+Rb0EBk8/Wc=

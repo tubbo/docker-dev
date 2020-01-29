@@ -1,4 +1,4 @@
-module github.com/puma/puma-dev
+module github.com/tubbo/docker-dev
 
 go 1.13
 
@@ -8,6 +8,7 @@ require (
 	github.com/hashicorp/golang-lru v0.0.0-20160207214719-a0d98a5f2880
 	github.com/kardianos/osext v0.0.0-20151222153229-29ae4ffbc9a6
 	github.com/miekg/dns v0.0.0-20160726032027-db96a2b759cd
+	github.com/puma/puma-dev v0.0.0-20191230234050-7d4d62682462
 	github.com/stretchr/testify v1.1.4-0.20160221104443-1f4a1643a57e
 	github.com/vektra/errors v0.0.0-20140903201135-c64d83aba85a
 	github.com/vektra/neko v0.0.0-20141017182438-843f5ecf6932
