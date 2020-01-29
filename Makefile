@@ -17,7 +17,7 @@ test:
 	@go test -v ./...
 
 clean:
-	@go clean ./cmd/docker-dev
+	@rm -rf docker-dev*
 
 $(GOX):
 	@go install github.com/mitchellh/gox
