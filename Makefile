@@ -1,10 +1,10 @@
 GOPATH?=~/go
 GOX=$(GOPATH)/bin/gox
 
-cmd/docker-dev:
+docker-dev:
 	@go build ./cmd/docker-dev
 
-install: cmd/docker-dev
+install: docker-dev
 	@go install ./cmd/docker-dev
 
 release: $(GOX)

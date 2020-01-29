@@ -202,7 +202,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			req.Method, req.URL.Path, req.Host)
 	}
 
-	if req.Host == "puma-dev" {
+	if req.Host == "docker-dev" {
 		h.mux.ServeHTTP(w, req)
 	} else {
 		h.proxy.ServeHTTP(w, req)

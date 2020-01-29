@@ -9,8 +9,10 @@ the dependence on Rack applications and focuses on proxying requests
 only. Instead of assuming that the application you want to serve is a
 Rack app, `docker-dev` assumes you're running the app in Docker, and
 runs `docker-compose up` to boot your app. A special environment
-variable named `$PORT` is used in `.env` to determine which port in your
-Docker application the server will proxy requests to.
+variable named `$PORT` is passed into `docker-compose` to determine
+which port in your Docker application the server will proxy requests to.
+You can expose this port in your compose file's `:ports` declaration and
+view your projects at an easy to remember domain, with no configuration!
 
 ## Highlights
 
@@ -190,6 +192,18 @@ docker-dev supports loading environment variables before tubbo starts. It checks
 * `.powrc`
 * `.powenv`
 
+### Zero Configuration
+
+It's possible to have `docker-dev` automatically boot Docker
+applications when you request them in the browser, based on the folder
+they are located in on your computer. To do this, remove the
+`~/.docker-dev` directory and symlink it to the directory all of your
+code lives in, like so (command example is from macOS):
+
+    rm -rf ~/.docker-dev && ln -s ~/Code ~/.docker-dev
+
+This will cause
+
 ### Important Note On Ports and Domain Names
 
 * Default privileged ports are 80 and 443
@@ -312,7 +326,7 @@ introspect it and the apps. To access it, send a request with the
 `curl -H "Host: docker-dev" localhost/status`.
 
 The status includes:
-  * If it is booting, running, or dead
+  * If the app is booting, running, or has exited
   * The directory of the app
   * The last 1024 lines the app output
 

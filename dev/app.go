@@ -3,6 +3,7 @@ package dev
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/puma/puma-dev/linebuffer"
 	"github.com/puma/puma-dev/watch"
 	"github.com/vektra/errors"
@@ -157,6 +160,7 @@ func (a *App) watch() error {
 	return err
 }
 
+// Detect when the app is idle.
 func (a *App) idleMonitor() error {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
@@ -297,38 +301,33 @@ exec docker-compose --no-ansi up'
 // LaunchApp boots the app with docker-compose and proxies requests to
 // it
 func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
-	dotenv := make(map[string]string)
-
 	tmpDir := filepath.Join(dir, "tmp")
 	err := os.MkdirAll(tmpDir, 0755)
 	if err != nil {
 		return nil, err
 	}
 
-	envfile, err := ioutil.ReadFile(filepath.Join(dir, ".env"))
+	// dotenv := make(map[string]string)
+	// envfile, err := ioutil.ReadFile(filepath.Join(dir, ".env"))
+	// contents := string(envfile)
+	// lines := strings.Split(contents, "\n")
+	// if err == nil {
+	// 	for _, line := range lines {
+	// 		statement := strings.Split(line, "=")
 
-	if err != nil {
-		return nil, err
-	}
+	// 		if len(statement) > 1 {
+	// 			key := statement[0]
+	// 			value := statement[1]
+	// 			fmt.Println(line)
+	// 			dotenv[key] = value
+	// 		}
+	// 	}
+	// }
 
 	_, err = os.Stat(filepath.Join(dir, "docker-compose.yml"))
 
 	if os.IsNotExist(err) {
 		return nil, err
-	}
-
-	contents := string(envfile)
-	lines := strings.Split(contents, "\n")
-
-	for _, line := range lines {
-		statement := strings.Split(line, "=")
-
-		if len(statement) > 1 {
-			key := statement[0]
-			value := statement[1]
-			fmt.Println(line)
-			dotenv[key] = value
-		}
 	}
 
 	port := GeneratePort()
@@ -390,6 +389,32 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		app.eventAdd("waiting_on_app")
 
 		ticker := time.NewTicker(250 * time.Millisecond)
+		ctx := context.Background()
+		docker, err := client.NewClientWithOpts(client.FromEnv)
+
+		if err != nil {
+			return err
+		}
+		docker.NegotiateAPIVersion(ctx)
+
+		containers, err := docker.ContainerList(ctx, *&types.ContainerListOptions{})
+
+		if err != nil {
+			return err
+		}
+
+		id := ""
+
+		for _, container := range containers {
+			expected := fmt.Sprintf("%s_web_1", app.Name)
+
+			for _, name := range container.Names {
+				if name == expected {
+					id = container.ID
+				}
+			}
+		}
+
 		defer ticker.Stop()
 		for {
 			select {
@@ -398,13 +423,22 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 				fmt.Printf("! Detecting app '%s' dying on start\n", name)
 				return fmt.Errorf("app died before booting")
 			case <-ticker.C:
-				c, err := net.Dial("tcp", app.Address())
-				if err == nil {
-					c.Close()
-					app.eventAdd("app_ready")
-					fmt.Printf("! App '%s' booted\n", name)
-					close(app.readyChan)
-					return nil
+				if id != "" {
+					container, err := docker.ContainerInspect(ctx, id)
+
+					if err == nil {
+						switch container.State.Health.Status {
+						case types.Healthy:
+							app.eventAdd("app_ready")
+							fmt.Printf("! App '%s' booted\n", name)
+							close(app.readyChan)
+							return nil
+						case types.Unhealthy:
+							app.eventAdd("dying_on_start")
+							fmt.Printf("! Detecting app '%s' dying on start\n", name)
+							return fmt.Errorf("app died before booting")
+						}
+					}
 				}
 			}
 		}
@@ -486,7 +520,9 @@ type AppPool struct {
 	apps map[string]*App
 }
 
-// Check if an app is idle
+// Check if an app is idle by diffing the last use time with the current
+// time. If it's over the idle time allowance for this pool, the app is
+// probably idle and should be killed.
 func (pool *AppPool) maybeIdle(app *App) bool {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
