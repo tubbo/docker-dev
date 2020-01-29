@@ -350,7 +350,13 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		app.Public = stat.IsDir()
 	}
 
-	app.SetAddress("httpu", socket, 0)
+	portNumber, err := strconv.Atoi(port)
+
+	if err != nil {
+		return nil, err
+	}
+
+	app.SetAddress("http", "127.0.0.1", portNumber)
 
 	app.t.Go(app.watch)
 	app.t.Go(app.idleMonitor)

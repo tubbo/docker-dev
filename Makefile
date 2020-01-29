@@ -23,4 +23,8 @@ clean:
 $(GOX):
 	@go install github.com/mitchellh/gox
 
+reload:
+	@launchctl unload ~/Library/LaunchAgents/io.github.tubbo.docker-dev.plist
+	@launchctl load ~/Library/LaunchAgents/io.github.tubbo.docker-dev.plist
+
 .PHONY: all release

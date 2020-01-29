@@ -265,7 +265,7 @@ func (p *ReverseProxy) websocketProxy(w http.ResponseWriter, r *http.Request) {
 
 	switch r.URL.Scheme {
 	case "httpu":
-		conn, err = net.Dial("unix", r.URL.Host)
+		conn, err = net.Dial("tcp", r.URL.Host)
 	case "http":
 		conn, err = net.Dial("tcp", r.URL.Host)
 	case "https":
