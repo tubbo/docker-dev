@@ -19,3 +19,7 @@ jobs:
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: amd64
+      - uses: actions/upload-artifact@v1
+        with:
+          name: docker-dev-${{ matrix.os }}-amd64
+          path: ./docker-dev
