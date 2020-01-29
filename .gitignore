@@ -1,6 +1,6 @@
 bin/
 pkg/
 vendor/pkg/
-/puma-dev
-/puma-dev-*zip
-/puma-dev-*tar.gz
+/docker-dev
+/docker-dev-*zip
+/docker-dev-*tar.gz

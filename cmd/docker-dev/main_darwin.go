@@ -20,20 +20,19 @@ var (
 	fPort     = flag.Int("dns-port", 9253, "port to listen on dns for")
 	fHTTPPort = flag.Int("http-port", 9280, "port to listen on http for")
 	fTLSPort  = flag.Int("https-port", 9283, "port to listen on https for")
-	fDir      = flag.String("dir", "~/.puma-dev", "directory to watch for apps")
+	fDir      = flag.String("dir", "~/.docker-dev", "directory to watch for apps")
 	fTimeout  = flag.Duration("timeout", 15*60*time.Second, "how long to let an app idle for")
 	fPow      = flag.Bool("pow", false, "Mimic pow's settings")
 	fLaunch   = flag.Bool("launchd", false, "Use socket from launchd")
 
 	fSetup = flag.Bool("setup", false, "Run system setup")
-	fStop  = flag.Bool("stop", false, "Stop all puma-dev servers")
+	fStop  = flag.Bool("stop", false, "Stop all docker-dev servers")
 
-	fInstall     = flag.Bool("install", false, "Install puma-dev as a user service")
-	fInstallPort = flag.Int("install-port", 80, "Port to run puma-dev on when installed")
-	fInstallTLS  = flag.Int("install-https-port", 443, "Port to run puma-dev for SSL on when installed")
+	fInstall     = flag.Bool("install", false, "Install docker-dev as a user service")
+	fInstallPort = flag.Int("install-port", 80, "Port to run docker-dev on when installed")
+	fInstallTLS  = flag.Int("install-https-port", 443, "Port to run docker-dev for SSL on when installed")
 
-	fCleanup   = flag.Bool("cleanup", false, "Cleanup old system settings")
-	fUninstall = flag.Bool("uninstall", false, "Uninstall puma-dev as a user service")
+	fUninstall = flag.Bool("uninstall", false, "Uninstall docker-dev as a user service")
 )
 
 func main() {
@@ -47,11 +46,6 @@ func main() {
 	}
 
 	domains := strings.Split(*fDomains, ":")
-
-	if *fCleanup {
-		dev.Cleanup()
-		return
-	}
 
 	if *fUninstall {
 		dev.Uninstall(domains)
@@ -77,7 +71,7 @@ func main() {
 	if *fStop {
 		err := dev.Stop()
 		if err != nil {
-			log.Fatalf("Unable to stop puma-dev servers: %s", err)
+			log.Fatalf("Unable to stop docker-dev servers: %s", err)
 		}
 		return
 	}
@@ -169,7 +163,7 @@ func main() {
 		tlsSocketName = "SocketTLS"
 	}
 
-	fmt.Printf("! Puma dev listening on http and https\n")
+	fmt.Printf("! Docker dev listening on http and https\n")
 
 	go http.ServeTLS(tlsSocketName)
 

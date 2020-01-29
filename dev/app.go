@@ -279,7 +279,7 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		return nil, err
 	}
 
-	_, err := os.Stat(filepath.Join(dir, "docker-compose.yml"))
+	_, err = os.Stat(filepath.Join(dir, "docker-compose.yml"))
 
 	if os.IsNotExist(err) {
 		return nil, err
