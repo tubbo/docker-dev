@@ -12,27 +12,30 @@ jobs:
       - uses: actions/setup-go@v1
         with:
           go-version: 1.11.x
+      - name: Get the version
+        id: metadata
+        run: echo ::set-output name=version::$(echo $GITHUB_REF | cut -d / -f 3)
       - run: make release
         env:
-          VERSION: ${{ github.ref }}
+          VERSION: ${{ steps.metadata.outputs.version }}
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ steps.metadata.outputs.version }}
+          release_name: Release ${{ steps.metadata.outputs.version }}
           draft: true
       - name: Upload macOS Asset
         uses: actions/upload-release-asset@v1.0.1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./docker-dev-${{ github.ref }}-darwin-amd64.zip
-          asset_name: docker-dev-${{ github.ref }}-macos-amd64.zip
+          asset_path: ./docker-dev-${{ steps.metadata.outputs.version }}-darwin-amd64.zip
+          asset_name: docker-dev-${{ steps.metadata.outputs.version }}-macos-amd64.zip
           asset_content_type: application/zip
       - name: Upload Linux Asset
         uses: actions/upload-release-asset@v1.0.1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./docker-dev-${{ github.ref }}-linux-amd64.tar.gz
-          asset_name: docker-dev-${{ github.ref }}-linux-amd64.tar.gz
+          asset_path: ./docker-dev-${{ steps.metadata.outputs.version }}-linux-amd64.tar.gz
+          asset_name: docker-dev-${{ steps.metadata.outputs.version }}-linux-amd64.tar.gz
           asset_content_type: application/gzip
