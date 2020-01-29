@@ -151,11 +151,32 @@ On Linux, docker-dev will not automatically run in the background (as per the Ma
 
 ## Usage
 
-Simply symlink your app's directory into `~/.docker-dev`! That's it!
+First, choose a port to run your app on and set it in `.env` in your
+app's root directory:
 
-You can use the built-in helper subcommand: `docker-dev link [-n name] [dir]` to link app directories into your docker-dev directory (`~/.docker-dev` by default).
+```bash
+PORT=3001
+```
+
+In `docker-compose.yml`, expose the port on the container you want to
+serve:
+
+```yaml
+version: '3'
+services:
+  web:
+    build: .
+    ports:
+      - '${PORT:-3000}:3000'
+```
+
+Then, symlink your app's directory into `~/.docker-dev`.
+
+You can use the built-in helper subcommand: `docker-dev link [-n name] [dir]`
+to link app directories into your docker-dev directory (`~/.docker-dev` by default).
 
 ### Options
+
 Run: `docker-dev -h`
 
 You have the ability to configure most of the values that you'll use day-to-day.
@@ -166,21 +187,14 @@ docker-dev supports loading environment variables before tubbo starts. It checks
 
 * `~/.powconfig`
 * `.env`
+* `.envrc`
 * `.powrc`
 * `.powenv`
-
-Additionally, docker-dev uses a few environment variables to control how tubbo is started that you can overwrite in your loaded shell config.
-
-* `CONFIG`: A tubbo configuration file to load, usually something like `config/docker-dev.rb`. Defaults to no config.
-* `THREADS`: How many threads tubbo should use concurrently. Defaults to 5.
-* `WORKERS`: How many worker processes to start. Defaults to 0, meaning only use threads.
 
 ### Important Note On Ports and Domain Names
 
 * Default privileged ports are 80 and 443
-* Default domain is `.test`.
-  * Previously it was `.dev`, but it is owned by Google and since Dec 2017 **HSTS only** with real websites hosted there.
-  * Don't use `.dev` and `.foo`, as they are real TLDs.
+* Default domain is `.test`. (don't use `.dev` and `.foo`, as they are now real TLDs)
 * Using pow? To avoid conflicts, use different ports and domain or [uninstall pow properly](http://pow.cx/manual.html#section_1.2).
 
 ### Restarting
@@ -189,7 +203,9 @@ If you would like to have docker-dev restart *a specific app*, you can run `touc
 
 ### Purging
 
-If you would like to have docker-dev stop *all the apps* (for resource issues or because an app isn't restarting properly), you can send `docker-dev` the signal `USR1`. The easiest way to do that is:
+If you would like to have docker-dev stop *all the apps* (for resource
+issues or because an app isn't restarting properly), you can send
+`docker-dev` the signal `USR1`. The easiest way to do that is:
 
 `docker-dev -stop`
 
@@ -197,27 +213,35 @@ If you would like to have docker-dev stop *all the apps* (for resource issues or
 
 Run: `docker-dev`
 
-docker-dev will startup by default using the directory `~/.docker-dev`, looking for symlinks to apps just like pow. Drop a symlink to your app in there as: `cd ~/.docker-dev; ln -s /path/to/my/app test`. You can now access your app as `test.test`.
+docker-dev will startup by default using the directory `~/.docker-dev`,
+looking for symlinks to apps just like pow. Drop a symlink to your app
+in there as: `cd ~/.docker-dev; ln -s /path/to/my/app test`. You can now
+access your app as `test.test`.
 
-Running `docker-dev` in this way will require you to use the listed http port, which is `9280` by default.
-
-### Coming from v0.2
-
-docker-dev v0.3 and later use launchd to access privileged ports, so if you installed v0.2, you'll need to remove the firewall rules.
-
-Run: `sudo docker-dev -cleanup`
+Running `docker-dev` in this way will require you to use the listed http
+port, which is `9280` by default.
 
 ### Coming from Pow
 
-By default, docker-dev uses the domain `.test` to manage your apps. If you want to have docker-dev look for apps in `~/.pow`, just run `docker-dev -pow`.
+By default, docker-dev uses the domain `.test` to manage your apps. If
+you want to have docker-dev look for apps in `~/.pow`, just run
+`docker-dev -pow`.
 
 ### Sub Directories
 
-If you have a more complex set of applications you want docker-dev to manage, you can use subdirectories under `~/.docker-dev` as well. This works by naming the app with a hyphen (`-`) where you'd have a slash (`/`) in the hostname. So for instance if you access `cool-frontend.test`, docker-dev will look for `~/.docker-dev/cool-frontend` and if it finds nothing, try `~/.docker-dev/cool/frontend`.
+If you have a more complex set of applications you want docker-dev to
+manage, you can use subdirectories under `~/.docker-dev` as well. This
+works by naming the app with a hyphen (`-`) where you'd have a slash
+(`/`) in the hostname. So for instance if you access
+`cool-frontend.test`, docker-dev will look for
+`~/.docker-dev/cool-frontend` and if it finds nothing, try
+`~/.docker-dev/cool/frontend`.
 
 ### Proxy support
 
-docker-dev can also proxy requests from a nice dev domain to another app. To do so, just write a file (rather than a symlink'd directory) into `~/.docker-dev` with the connection information.
+docker-dev can also proxy any request from a nice dev domain to another
+app. To do so, just write a file (rather than a symlink'd directory)
+into `~/.docker-dev` with the connection information.
 
 For example, to have port 9292 show up as `awesome.test`: `echo 9292 > ~/.docker-dev/awesome`.
 
@@ -225,17 +249,31 @@ Or to proxy to another host: `echo 10.3.1.2:9292 > ~/.docker-dev/awesome-elsewhe
 
 ### HTTPS
 
-docker-dev automatically makes the apps available via SSL as well. When you first run docker-dev, it will have likely caused a dialog to appear to put in your password. What happened there was docker-dev generates its own CA certification that is stored in `~/Library/Application Support/io.tubbo.dev/cert.pem`.
+docker-dev automatically makes the apps available via SSL as well. When
+you first run docker-dev, it will have likely caused a dialog to appear
+to put in your password. What happened there was docker-dev generates
+its own CA certification that is stored in `~/Library/Application Support/io.github.tubbo.docker-dev/cert.pem`.
 
-That CA cert is used to dynamically create certificates for your apps when access to them is requested. It automatically happens, no configuration necessary. The certs are stored entirely in memory so future restarts of docker-dev simply generate new ones.
+That CA cert is used to dynamically create certificates for your apps
+when access to them is requested. It automatically happens, no
+configuration necessary. The certs are stored entirely in memory so
+future restarts of docker-dev simply generate new ones.
 
-When `-install` is used (and let's be honest, that's how you want to use docker-dev), then it listens on port 443 by default (configurable with `-install-https-port`) so you can just do `https://blah.test` to access your app via https.
+When `-install` is used (and let's be honest, that's how you want to use
+docker-dev), then it listens on port 443 by default (configurable with
+`-install-https-port`) so you can just do `https://blah.test` to access
+your app via https.
 
 ### Websockets
 
-docker-dev supports websockets natively but you may need to tell your web framework to allow the connections.
+docker-dev supports websockets natively but you may need to tell your
+web framework to allow the connections.
 
-In the case of rails, you need to configure rails to allow all websockets or websocket requests from certain domains. The quickest way is to add `config.action_cable.disable_request_forgery_protection = true` to `config/environments/development.rb`. This will allow all websocket connections while in development.
+In the case of rails, you need to configure rails to allow all
+websockets or websocket requests from certain domains. The quickest way
+is to add `config.action_cable.disable_request_forgery_protection =
+true` to `config/environments/development.rb`. This will allow all
+websocket connections while in development.
 
 *Do not use disable_request_forgery_protection in production!*
 
@@ -243,23 +281,36 @@ Or you can add something like `config.action_cable.allowed_request_origins = /(\
 
 ### xip.io
 
-docker-dev supports `xip.io` domains. It will detect them and strip them away, so that your `test` app can be accessed as `test.A.B.C.D.xip.io`.
+docker-dev supports `xip.io` domains. It will detect them and strip them
+away, so that your `test` app can be accessed as `test.A.B.C.D.xip.io`.
 
 ### Run multiple domains
 
-docker-dev allows you to run multiple local domains. Handy if you're working with more than one client. Simply set up docker-dev like so: `docker-dev -install -d first-domain:second-domain`
+docker-dev allows you to run multiple local domains. Handy if you're
+working with more than one client. Simply set up docker-dev like so:
+`docker-dev -install -d first-domain:second-domain`
 
 ### Static file support
 
-Like pow, docker-dev support serving static files. If an app has a `public` directory, then any urls that match files within that directory are served. The static files have priority over the app.
+Like pow, docker-dev support serving static files. If an app has a
+`public` directory, then any urls that match files within that directory
+are served. The static files have priority over the app.
 
 ### Subdomains support
 
-Once a virtual host is installed, it's also automatically accessible from all subdomains of the named host. For example, a `myapp` virtual host could also be accessed at `http://www.myapp.test/` and `http://assets.www.myapp.test/`. You can override this behavior to, say, point `www.myapp.test` to a different application: just create another virtual host symlink named `www.myapp` for the application you want.
+Once a virtual host is installed, it's also automatically accessible
+from all subdomains of the named host. For example, a `myapp` virtual
+host could also be accessed at `http://www.myapp.test/` and
+`http://assets.www.myapp.test/`. You can override this behavior to, say,
+point `www.myapp.test` to a different application: just create another
+virtual host symlink named `www.myapp` for the application you want.
 
 ### Status API
 
-docker-dev is starting to evolve a status API that can be used to introspect it and the apps. To access it, send a request with the `Host: docker-dev` and the path `/status`, for example: `curl -H "Host: docker-dev" localhost/status`.
+docker-dev is starting to evolve a status API that can be used to
+introspect it and the apps. To access it, send a request with the
+`Host: docker-dev` header and the path `/status`, for example:
+`curl -H "Host: docker-dev" localhost/status`.
 
 The status includes:
   * If it is booting, running, or dead
@@ -271,8 +322,8 @@ The status includes:
 To build docker-dev, follow these steps:
 
 * Install [golang](http://golang.org)
-* Run `go get github.com/tubbo/docker-dev/...`
-* Run `go get github.com/vektra/errors/...`
-* Run `$GOPATH/bin/docker-dev` to use your new binary
+* Run `make`
+* Run `./docker-dev` to use your new binary
 
-docker-dev uses [govendor](https://github.com/kardianos/govendor) to manage dependencies, so if you're working on docker-dev and need to introduce a new dependency, run `govendor fetch +vendor <package path>` to pull it into `vendor`. Then you can use it from within `docker-dev/src`
+docker-dev uses [Go Modules](https://github.com/golang/go/wiki/Modules)
+to manage dependencies, so you must be running v1.11 or above.
