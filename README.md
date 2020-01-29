@@ -1,6 +1,8 @@
 # Docker-dev: A fork of puma-dev for containerized apps
 
-[![Build Status](https://travis-ci.org/tubbo/docker-dev.svg?branch=master)](https://travis-ci.org/tubbo/docker-dev)
+[![Tests Status](https://github.com/tubbo/docker-dev/workflows/Tests/badge.svg)](https://github.com/tubbo/docker-dev/actions?query=workflow%3ATests)
+[![Build Status](https://github.com/tubbo/docker-dev/workflows/Tests/badge.svg)](https://github.com/tubbo/docker-dev/actions?query=workflow%3ABuild)
+[![Release Status](https://github.com/tubbo/docker-dev/workflows/Tests/badge.svg)](https://github.com/tubbo/docker-dev/actions?query=workflow%3ARelease)
 
 Docker-dev is a fork of
 [puma-dev](https://github.com/tubbo/docker-dev/releases) that eschews
