@@ -1,10 +1,10 @@
 GOPATH?=~/go
 GOX=$(GOPATH)/bin/gox
 
-all:
+cmd/docker-dev:
 	@go build ./cmd/docker-dev
 
-install:
+install: cmd/docker-dev
 	@go install ./cmd/docker-dev
 
 release: $(GOX)
@@ -23,8 +23,12 @@ clean:
 $(GOX):
 	@go install github.com/mitchellh/gox
 
-reload:
+restart: stop start
+
+stop:
 	@launchctl unload ~/Library/LaunchAgents/io.github.tubbo.docker-dev.plist
+
+start:
 	@launchctl load ~/Library/LaunchAgents/io.github.tubbo.docker-dev.plist
 
-.PHONY: all release
+.PHONY: all install release test clean restart stop start
