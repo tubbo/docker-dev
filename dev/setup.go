@@ -85,14 +85,14 @@ func InstallIntoSystem(listenPort, tlsPort int, dir, domains, timeout string) er
 		return errors.Context(err, "calculating executable path")
 	}
 
-	fmt.Printf("* Use '%s' as the location of puma-dev\n", binPath)
+	fmt.Printf("* Use '%s' as the location of docker-dev\n", binPath)
 
 	var userTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
    <key>Label</key>
-   <string>io.puma.dev</string>
+   <string>io.github.tubbo.docker-dev</string>
    <key>ProgramArguments</key>
    <array>
      <string>%s</string>
@@ -133,7 +133,7 @@ func InstallIntoSystem(listenPort, tlsPort int, dir, domains, timeout string) er
 </plist>
 `
 
-	logPath := homedir.MustExpand("~/Library/Logs/puma-dev.log")
+	logPath := homedir.MustExpand("~/Library/Logs/docker-dev.log")
 
 	plistDir := homedir.MustExpand("~/Library/LaunchAgents")
 	plist := homedir.MustExpand("~/Library/LaunchAgents/io.github.tubbo.docker-dev.plist")
@@ -162,13 +162,13 @@ func InstallIntoSystem(listenPort, tlsPort int, dir, domains, timeout string) er
 		return errors.Context(err, "loading plist into launchctl")
 	}
 
-	fmt.Printf("* Installed puma-dev on ports: http %d, https %d\n", listenPort, tlsPort)
+	fmt.Printf("* Installed docker-dev on ports: http %d, https %d\n", listenPort, tlsPort)
 
 	return nil
 }
 
 func Stop() error {
-	err := exec.Command("pkill", "-USR1", "puma-dev").Run()
+	err := exec.Command("pkill", "-USR1", "docker-dev").Run()
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func Uninstall(domains []string) {
 
 	os.Remove(plist)
 
-	fmt.Printf("* Removed puma-dev from automatically running\n")
+	fmt.Printf("* Removed docker-dev from automatically running\n")
 
 	for _, d := range domains {
 		os.Remove(filepath.Join("/etc/resolver", d))

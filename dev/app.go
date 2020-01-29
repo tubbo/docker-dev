@@ -253,6 +253,10 @@ if test -e .env; then
 	source .env
 fi
 
+if test -e .envrc; then
+	source .envrc
+fi
+
 if test -e .powrc; then
 	source .powrc
 fi
@@ -261,11 +265,11 @@ if test -e .powenv; then
 	source .powenv
 fi
 
-exec docker-compose up -d
+exec docker-compose --no-ansi up'
 `
 
 func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
-	var dotenv map[string]string
+	dotenv := make(map[string]string)
 
 	tmpDir := filepath.Join(dir, "tmp")
 	err := os.MkdirAll(tmpDir, 0755)
@@ -290,9 +294,13 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 
 	for _, line := range lines {
 		statement := strings.Split(line, "=")
-		key := statement[0]
-		value := statement[1]
-		dotenv[key] = value
+
+		if len(statement) > 1 {
+			key := statement[0]
+			value := statement[1]
+			fmt.Println(line)
+			dotenv[key] = value
+		}
 	}
 
 	port := dotenv["PORT"]
@@ -305,16 +313,10 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		shell = "/bin/bash"
 	}
 
-	cmd := exec.Command(shell, "-l", "-i", "-c", fmt.Sprintf(executionShell, dir))
-
+	execution := fmt.Sprintf(executionShell, dir)
+	cmd := exec.Command(shell, "-l", "-i", "-c", execution)
 	cmd.Dir = dir
-
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env,
-		fmt.Sprintf("THREADS=%d", DefaultThreads),
-		"WORKERS=0",
-		"CONFIG=-",
-	)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
