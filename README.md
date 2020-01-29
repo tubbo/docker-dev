@@ -1,12 +1,15 @@
-# Docker-dev: A fork of docker-dev for Docker applications only
+# Docker-dev: A fork of puma-dev for containerized apps
 
 [![Build Status](https://travis-ci.org/tubbo/docker-dev.svg?branch=master)](https://travis-ci.org/tubbo/docker-dev)
 
-Docker-dev is a fork of [docker-dev][] that eschews the dependence on Rack
-applications and focuses on proxying requests only. Instead of looking
-for a `config.ru` in your application directory, it looks for an
-`.env` file with a setting for `PORT=` to determine what port to proxy
-to.
+Docker-dev is a fork of
+[puma-dev](https://github.com/tubbo/docker-dev/releases) that eschews
+the dependence on Rack applications and focuses on proxying requests
+only. Instead of assuming that the application you want to serve is a
+Rack app, `docker-dev` assumes you're running the app in Docker, and
+runs `docker-compose up` to boot your app. A special environment
+variable named `$PORT` is used in `.env` to determine which port in your
+Docker application the server will proxy requests to.
 
 ## Highlights
 
@@ -19,8 +22,8 @@ to.
 * __https__ - it Just Works!
 * Supports macOS __and__ Linux
 * The honorary `pow` [is no longer maintained](https://github.com/basecamp/pow/commit/310f260d08159cf86a52df7ddb5a3bd53a94614f)
-* `docker-dev` requires custom configuration to use with containerized
-  applications
+* `puma-dev` requires custom configuration to use with containerized
+  applications.
 
 ## Installation
 
