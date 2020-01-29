@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/url"
 	"os"
@@ -23,10 +24,15 @@ import (
 	"gopkg.in/tomb.v2"
 )
 
+// DefaultThreads specifies the amount of threads that will be consumed
+// by default
 const DefaultThreads = 5
 
+// ErrUnexpectedExit is the error thrown when the app crashes during a
+// request
 var ErrUnexpectedExit = errors.New("unexpected exit")
 
+// App represents a running `docker-compose` project
 type App struct {
 	Name    string
 	Scheme  string
@@ -62,6 +68,7 @@ func (a *App) eventAdd(name string, args ...interface{}) {
 	a.lines.Append("#event " + str)
 }
 
+// SetAddress configures the URL that the app is running on
 func (a *App) SetAddress(scheme, host string, port int) {
 	a.Scheme = scheme
 	a.Host = host
@@ -74,6 +81,7 @@ func (a *App) SetAddress(scheme, host string, port int) {
 	}
 }
 
+// Address returns the URL to this app.
 func (a *App) Address() string {
 	if a.Port == 0 {
 		return a.Host
@@ -82,6 +90,7 @@ func (a *App) Address() string {
 	return fmt.Sprintf("%s:%d", a.Host, a.Port)
 }
 
+// Kill terminates the process the app is running on
 func (a *App) Kill(reason string) error {
 	a.eventAdd("killing_app",
 		"pid", a.Command.Process.Pid,
@@ -163,8 +172,6 @@ func (a *App) idleMonitor() error {
 			return nil
 		}
 	}
-
-	return nil
 }
 
 func (a *App) restartMonitor() error {
@@ -187,6 +194,8 @@ func (a *App) restartMonitor() error {
 	})
 }
 
+// WaitTilReady listens on the App's `readyChan` for the app to come up
+// and returns when it can serve requests.
 func (a *App) WaitTilReady() error {
 	select {
 	case <-a.readyChan:
@@ -204,11 +213,15 @@ func (a *App) WaitTilReady() error {
 }
 
 const (
+	// Booting is the thread that will boot
 	Booting = iota
+	// Running are the threads that are running
 	Running
+	// Dead are any dead threads
 	Dead
 )
 
+// Status returns whether the app is currently running
 func (a *App) Status() int {
 	// These are done in order as separate selects because go's
 	// select does not execute case's sequentially, it runs bodies
@@ -226,6 +239,7 @@ func (a *App) Status() int {
 	}
 }
 
+// Log outputs log messages to STDOUT
 func (a *App) Log() string {
 	var buf bytes.Buffer
 	a.lines.WriteTo(&buf)
@@ -240,6 +254,16 @@ func fileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+// GeneratePort outputs a random port number in the range of 3001-3999
+// that will be passed as $PORT to the `docker-compose` process for a
+// given application.
+func GeneratePort() int {
+	low := 3001
+	hi := 3999
+
+	return low + rand.Intn(hi-low)
 }
 
 const executionShell = `exec bash -c '
@@ -265,9 +289,13 @@ if test -e .powenv; then
 	source .powenv
 fi
 
+export PORT=%d
+
 exec docker-compose --no-ansi up'
 `
 
+// LaunchApp boots the app with docker-compose and proxies requests to
+// it
 func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 	dotenv := make(map[string]string)
 
@@ -303,9 +331,7 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		}
 	}
 
-	port := dotenv["PORT"]
-	socket := fmt.Sprintf("localhost:%s", port)
-
+	port := GeneratePort()
 	shell := os.Getenv("SHELL")
 
 	if shell == "" {
@@ -313,7 +339,7 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		shell = "/bin/bash"
 	}
 
-	execution := fmt.Sprintf(executionShell, dir)
+	execution := fmt.Sprintf(executionShell, dir, port)
 	cmd := exec.Command(shell, "-l", "-i", "-c", execution)
 	cmd.Dir = dir
 	cmd.Env = os.Environ()
@@ -330,7 +356,7 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		return nil, errors.Context(err, "starting app")
 	}
 
-	fmt.Printf("! Booting app '%s' on socket %s\n", name, socket)
+	fmt.Printf("! Booting app '%s' on port %d\n", name, port)
 
 	app := &App{
 		Name:      name,
@@ -341,22 +367,17 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		pool:      pool,
 		readyChan: make(chan struct{}),
 		lastUse:   time.Now(),
+		Port:      port,
 	}
 
-	app.eventAdd("booting_app", "socket", socket)
+	app.eventAdd("booting_app", "port", app.Port)
 
 	stat, err := os.Stat(filepath.Join(dir, "public"))
 	if err == nil {
 		app.Public = stat.IsDir()
 	}
 
-	portNumber, err := strconv.Atoi(port)
-
-	if err != nil {
-		return nil, err
-	}
-
-	app.SetAddress("http", "127.0.0.1", portNumber)
+	app.SetAddress("http", "127.0.0.1", port)
 
 	app.t.Go(app.watch)
 	app.t.Go(app.idleMonitor)
@@ -377,7 +398,7 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 				fmt.Printf("! Detecting app '%s' dying on start\n", name)
 				return fmt.Errorf("app died before booting")
 			case <-ticker.C:
-				c, err := net.Dial("tcp", socket)
+				c, err := net.Dial("tcp", app.Address())
 				if err == nil {
 					c.Close()
 					app.eventAdd("app_ready")
@@ -452,6 +473,7 @@ func (pool *AppPool) readProxy(name, path string) (*App, error) {
 	return app, nil
 }
 
+// AppPool is the collection of Apps that docker-dev controls
 type AppPool struct {
 	Dir      string
 	IdleTime time.Duration
@@ -464,38 +486,42 @@ type AppPool struct {
 	apps map[string]*App
 }
 
-func (a *AppPool) maybeIdle(app *App) bool {
-	a.lock.Lock()
-	defer a.lock.Unlock()
+// Check if an app is idle
+func (pool *AppPool) maybeIdle(app *App) bool {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
 
 	diff := time.Since(app.lastUse)
-	if diff > a.IdleTime {
+	if diff > pool.IdleTime {
 		app.eventAdd("idle_app", "last_used", diff.String())
-		delete(a.apps, app.Name)
+		delete(pool.apps, app.Name)
 		return true
 	}
 
 	return false
 }
 
+// ErrUnknownApp is thrown when an application cannot be found in
+// config
 var ErrUnknownApp = errors.New("unknown app")
 
-func (a *AppPool) App(name string) (*App, error) {
-	a.lock.Lock()
-	defer a.lock.Unlock()
+// App looks up an app in the pool or adds it.
+func (pool *AppPool) App(name string) (*App, error) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
 
-	if a.apps == nil {
-		a.apps = make(map[string]*App)
+	if pool.apps == nil {
+		pool.apps = make(map[string]*App)
 	}
 
-	app, ok := a.apps[name]
+	app, ok := pool.apps[name]
 	if ok {
 		return app, nil
 	}
 
-	path := filepath.Join(a.Dir, name)
+	path := filepath.Join(pool.Dir, name)
 
-	a.Events.Add("app_lookup", "path", path)
+	pool.Events.Add("app_lookup", "path", path)
 
 	stat, err := os.Stat(path)
 	destPath, _ := os.Readlink(path)
@@ -509,7 +535,7 @@ func (a *AppPool) App(name string) (*App, error) {
 		_, err := os.Lstat(path)
 		if err == nil {
 			fmt.Printf("! Bad symlink detected '%s'. Destination '%s' doesn't exist\n", path, destPath)
-			a.Events.Add("bad_symlink", "path", path, "dest", destPath)
+			pool.Events.Add("bad_symlink", "path", path, "dest", destPath)
 		}
 
 		// If possible, also try expanding - to / to allow for apps in subdirs
@@ -518,9 +544,9 @@ func (a *AppPool) App(name string) (*App, error) {
 			return nil, ErrUnknownApp
 		}
 
-		path = filepath.Join(a.Dir, possible)
+		path = filepath.Join(pool.Dir, possible)
 
-		a.Events.Add("app_lookup", "path", path)
+		pool.Events.Add("app_lookup", "path", path)
 
 		stat, err = os.Stat(path)
 		destPath, _ = os.Readlink(path)
@@ -534,7 +560,7 @@ func (a *AppPool) App(name string) (*App, error) {
 			_, err := os.Lstat(path)
 			if err == nil {
 				fmt.Printf("! Bad symlink detected '%s'. Destination '%s' doesn't exist\n", path, destPath)
-				a.Events.Add("bad_symlink", "path", path, "dest", destPath)
+				pool.Events.Add("bad_symlink", "path", path, "dest", destPath)
 			}
 
 			return nil, ErrUnknownApp
@@ -554,65 +580,67 @@ func (a *AppPool) App(name string) (*App, error) {
 		}
 	}
 
-	app, ok = a.apps[canonicalName]
+	app, ok = pool.apps[canonicalName]
 
 	if !ok {
 		if stat.IsDir() {
-			app, err = a.LaunchApp(canonicalName, path)
+			app, err = pool.LaunchApp(canonicalName, path)
 		} else {
-			app, err = a.readProxy(canonicalName, path)
+			app, err = pool.readProxy(canonicalName, path)
 		}
 	}
 
 	if err != nil {
-		a.Events.Add("error_starting_app", "app", canonicalName, "error", err.Error())
+		pool.Events.Add("error_starting_app", "app", canonicalName, "error", err.Error())
 		return nil, err
 	}
 
-	a.apps[canonicalName] = app
+	pool.apps[canonicalName] = app
 
 	if aliasName != "" {
-		a.apps[aliasName] = app
+		pool.apps[aliasName] = app
 	}
 
 	return app, nil
 }
 
-func (a *AppPool) remove(app *App) {
-	a.lock.Lock()
-	defer a.lock.Unlock()
+func (pool *AppPool) remove(app *App) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
 
 	// Find all instance references so aliases are removed too
-	for name, candidate := range a.apps {
+	for name, candidate := range pool.apps {
 		if candidate == app {
-			delete(a.apps, name)
+			delete(pool.apps, name)
 		}
 	}
 
-	if a.AppClosed != nil {
-		a.AppClosed(app)
+	if pool.AppClosed != nil {
+		pool.AppClosed(app)
 	}
 }
 
-func (a *AppPool) ForApps(f func(*App)) {
-	a.lock.Lock()
-	defer a.lock.Unlock()
+// ForApps runs the callback function for each app that exists
+func (pool *AppPool) ForApps(f func(*App)) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
 
-	for _, app := range a.apps {
+	for _, app := range pool.apps {
 		f(app)
 	}
 }
 
-func (a *AppPool) Purge() {
-	a.lock.Lock()
+// Purge kills all apps
+func (pool *AppPool) Purge() {
+	pool.lock.Lock()
 
 	var apps []*App
 
-	for _, app := range a.apps {
+	for _, app := range pool.apps {
 		apps = append(apps, app)
 	}
 
-	a.lock.Unlock()
+	pool.lock.Unlock()
 
 	for _, app := range apps {
 		app.eventAdd("purging_app")
@@ -623,5 +651,5 @@ func (a *AppPool) Purge() {
 		app.t.Wait()
 	}
 
-	a.Events.Add("apps_purged")
+	pool.Events.Add("apps_purged")
 }
