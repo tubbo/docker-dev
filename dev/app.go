@@ -397,48 +397,53 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		}
 		docker.NegotiateAPIVersion(ctx)
 
-		containers, err := docker.ContainerList(ctx, *&types.ContainerListOptions{})
+		var id string
 
-		if err != nil {
-			return err
-		}
-
-		id := ""
-
-		for _, container := range containers {
-			expected := fmt.Sprintf("%s_web_1", app.Name)
-
-			for _, name := range container.Names {
-				if name == expected {
-					id = container.ID
-				}
-			}
-		}
+		expectedContainerName := fmt.Sprintf("/%s_web_1", app.Name)
 
 		defer ticker.Stop()
+
 		for {
+			containers, err := docker.ContainerList(ctx, *&types.ContainerListOptions{})
+
+			if err != nil {
+				return err
+			}
+
+			for _, container := range containers {
+				for _, containerName := range container.Names {
+					if containerName == expectedContainerName {
+						id = container.ID
+					}
+				}
+			}
+
 			select {
 			case <-app.t.Dying():
 				app.eventAdd("dying_on_start")
 				fmt.Printf("! Detecting app '%s' dying on start\n", name)
 				return fmt.Errorf("app died before booting")
 			case <-ticker.C:
-				if id != "" {
-					container, err := docker.ContainerInspect(ctx, id)
+				if id == "" {
+					continue
+				}
 
-					if err == nil {
-						switch container.State.Health.Status {
-						case types.Healthy:
-							app.eventAdd("app_ready")
-							fmt.Printf("! App '%s' booted\n", name)
-							close(app.readyChan)
-							return nil
-						case types.Unhealthy:
-							app.eventAdd("dying_on_start")
-							fmt.Printf("! Detecting app '%s' dying on start\n", name)
-							return fmt.Errorf("app died before booting")
-						}
-					}
+				container, err := docker.ContainerInspect(ctx, id)
+
+				if err != nil {
+					return err
+				}
+
+				switch container.State.Health.Status {
+				case types.Healthy:
+					app.eventAdd("app_ready")
+					fmt.Printf("! App '%s' booted\n", name)
+					close(app.readyChan)
+					return nil
+				case types.Unhealthy:
+					fmt.Printf("! App '%s' is unhealthy\n", name)
+					<-app.t.Dying()
+					return nil
 				}
 			}
 		}
