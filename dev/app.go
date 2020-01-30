@@ -21,8 +21,8 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"github.com/puma/puma-dev/linebuffer"
-	"github.com/puma/puma-dev/watch"
+	"github.com/tubbo/docker-dev/linebuffer"
+	"github.com/tubbo/docker-dev/watch"
 	"github.com/vektra/errors"
 	"gopkg.in/tomb.v2"
 )

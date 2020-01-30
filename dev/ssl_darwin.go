@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/puma/puma-dev/homedir"
+	"github.com/tubbo/docker-dev/homedir"
 )
 
 const supportDir = "~/Library/Application Support/io.puma.dev"
