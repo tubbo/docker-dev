@@ -441,9 +441,9 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 					close(app.readyChan)
 					return nil
 				case types.Unhealthy:
-					fmt.Printf("! App '%s' is unhealthy\n", name)
-					<-app.t.Dying()
-					return nil
+					app.eventAdd("dying_on_start")
+					fmt.Printf("! Detecting app '%s' dying on start\n", name)
+					return fmt.Errorf("the %s container is unhealthy, check your logs for more details", expectedContainerName)
 				}
 			}
 		}
