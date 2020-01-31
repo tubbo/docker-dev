@@ -293,7 +293,9 @@ if test -e .powenv; then
 	source .powenv
 fi
 
-export PORT=%d
+if test -z "$PORT"; then
+	export PORT=%d
+fi
 
 exec docker-compose --no-ansi up'
 `
@@ -307,27 +309,10 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 		return nil, err
 	}
 
-	// dotenv := make(map[string]string)
-	// envfile, err := ioutil.ReadFile(filepath.Join(dir, ".env"))
-	// contents := string(envfile)
-	// lines := strings.Split(contents, "\n")
-	// if err == nil {
-	// 	for _, line := range lines {
-	// 		statement := strings.Split(line, "=")
-
-	// 		if len(statement) > 1 {
-	// 			key := statement[0]
-	// 			value := statement[1]
-	// 			fmt.Println(line)
-	// 			dotenv[key] = value
-	// 		}
-	// 	}
-	// }
-
 	_, err = os.Stat(filepath.Join(dir, "docker-compose.yml"))
 
 	if os.IsNotExist(err) {
-		return nil, err
+		return nil, ErrUnknownApp
 	}
 
 	port := GeneratePort()
