@@ -18,7 +18,7 @@ test:
 	@go test -v ./...
 
 clean:
-	@rm -rf docker-dev*
+	@rm -rf docker-dev* tags
 
 $(GOX):
 	@go install github.com/mitchellh/gox
@@ -30,5 +30,8 @@ stop:
 
 start:
 	@launchctl load ~/Library/LaunchAgents/io.github.tubbo.docker-dev.plist
+
+tags:
+	@ctags -R .
 
 .PHONY: all install release test clean restart stop start

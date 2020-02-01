@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Docker Dev
 
 A fork of [puma-dev][] for containerized applications.
@@ -15,6 +19,9 @@ Or, install with [Go][]:
 Then:
 
     docker-dev -install
+
+You can also take a look at the [README][] for information on how to
+build from source.
 
 ## Usage
 
@@ -87,3 +94,5 @@ the `docker-compose.yml` file by way of an environment variable named
 `$PORT`.
 
 [puma-dev]: https://github.com/puma/puma-dev
+[Go]: https://golang.org
+[README]: https://github.com/tubbo/docker-dev/blob/master/README.md

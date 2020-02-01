@@ -5,3 +5,5 @@ vendor/pkg/
 /docker-dev-*zip
 /docker-dev-*tar.gz
 /tmp
+/docs/_site
+/docs/node_modules

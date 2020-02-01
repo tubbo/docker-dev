@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{ site.title }}</title>
+    <link rel="preload" href="{{ '/screen.css' | relative_url }}" as="style" />
+    <link rel="stylesheet" type="text/css" href="/screen.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+    <header class="header">
+      <strong><a href="/">{{ site.title }}</a></strong>
+      <a class="github-fork-ribbon"
+         href="https://github.com/tubbo/docker-dev"
+         data-ribbon="Fork me on GitHub" title="Fork me on GitHub">
+        Fork me on GitHub
+      </a>
+    </header>
+    <main class="page">
+      {{ content }}
+    </main>
+  </body>
+</html>
