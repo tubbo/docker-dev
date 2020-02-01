@@ -419,16 +419,31 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 					return err
 				}
 
-				switch container.State.Health.Status {
-				case types.Healthy:
-					app.eventAdd("app_ready")
-					fmt.Printf("! App '%s' booted\n", name)
-					close(app.readyChan)
-					return nil
-				case types.Unhealthy:
+				if container.State.Dead || container.State.OOMKilled {
 					app.eventAdd("dying_on_start")
 					fmt.Printf("! Detecting app '%s' dying on start\n", name)
-					return fmt.Errorf("the %s container is unhealthy, check your logs for more details", expectedContainerName)
+					return fmt.Errorf("error running container: %s", container.State.Error)
+				}
+
+				if container.State.Running {
+					if container.State.Health != nil {
+						switch container.State.Health.Status {
+						case types.Healthy:
+							app.eventAdd("app_ready")
+							fmt.Printf("! App '%s' booted\n", name)
+							close(app.readyChan)
+							return nil
+						case types.Unhealthy:
+							app.eventAdd("dying_on_start")
+							fmt.Printf("! Detecting app '%s' dying on start\n", name)
+							return fmt.Errorf("the %s container is unhealthy, check your logs for more details", expectedContainerName)
+						}
+					} else {
+						app.eventAdd("app_ready")
+						fmt.Printf("! App '%s' booted\n", name)
+						close(app.readyChan)
+						return nil
+					}
 				}
 			}
 		}

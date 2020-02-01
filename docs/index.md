@@ -26,25 +26,49 @@ subcommand from within your app directory:
 
 Before booting your app, make sure your **docker-compose.yml** includes
 a port mapping that will expose your application server's HTTP port to
-the `$PORT` passed in by `docker-dev`, as well as at least one health
-check. You need the `$PORT` to tell `docker-compose` what port
-`docker-dev` is expecting the app to be served on, and a `HEALTHCHECK`
-in your **Dockerfile** (or in the YAML) to tell `docker-dev` when the
-app is ready.
+the `$PORT` passed in by `docker-dev`. You need the `$PORT` to tell
+`docker-compose` what port `docker-dev` is expecting the app to be served
+on, since it's cumbersome for `docker-compose` apps to communicate through
+UNIX sockets.
 
 Here's a minimal example to get a container running in `docker-dev`:
 
 ```yaml
+# in ~/.docker-dev/your-app/docker-compose.yml..
+version: '3'
 services:
   web:
     build: .
-    healthcheck: # you can also configure this in Dockerfile
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
     ports:
       - '${PORT}:3000'
 ```
 
 Then, boot your app by requesting https://yourapp.test
+
+This will launch `docker-compose` and pass in a randomized `$PORT`. When
+your app is ready to serve requests (see below for how to configure
+this), the request made to your `.test` domain will complete. Until
+then, the request will be enqueued and the browser will wait until the
+app is up and running.
+
+### Health Checks
+
+`docker-dev` pays attention to a `HEALTHCHECK` if you have one
+configured in your Docker image (or in your compose file). If Docker can
+check the health of your container, then `docker-dev` can read that
+information and determine what state the application is in, and whether
+the project needs a restart. When no health check is configured for the
+container, `docker-dev` will signal that the app is ready when the
+container is up and running, but a health check allows some deeper
+reporting.
+
+An example of when you might want to do this is for a Rails application
+that takes a while to boot up. The container may be up, but the web
+server is not yet ready to serve requests. However, if you have a `HEALTHCHECK`
+configured to run `curl http://localhost:3000/`, Docker (and
+`docker-dev`) can be aware of whether the web server running in the
+container is ready to serve requests, and enqueue any requests made to
+the `.test` domain until that time occurs.
 
 ## Why?
 
