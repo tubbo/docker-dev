@@ -30,12 +30,13 @@ view your projects at an easy to remember domain, with no configuration!
 
 ## Installation
 
-Install the binary with your package manager, or using a pre-built
-binary...
+Install `docker-dev` using a pre-built binary...
 
-### Homebrew on macOS
+### One-Line Install Script
 
-`brew install tubbo/tubbo/docker-dev`
+```bash
+$ curl -sL https://tubbo.github.io/install.sh | bash
+```
 
 ### Pre-built Binaries
 
@@ -43,16 +44,11 @@ You may download binaries for macOS and Linux at https://github.com/tubbo/docker
 
 ### Build from Source
 
-```shell
-#!/usr/bin/env bash
-
-go version
-
-go get github.com/tubbo/docker-dev/...
-cd $GOPATH/src/github.com/tubbo/docker-dev/
-make && make install
-
-$GOBIN/docker-dev -V
+```bash
+$ git clone https://github.com/tubbo/docker-dev.git
+$ cd docker-dev
+$ make && make install
+$ docker-dev -V
 ```
 
 ------
@@ -68,43 +64,71 @@ sudo docker-dev -setup
 docker-dev -install
 ```
 
-If you wish to have `docker-dev` use a port other than 80, pass it via the `-install-port`, for example to use port 81: `docker-dev -install -install-port 81`.
+If you wish to have `docker-dev` use a port other than 80, pass it via
+the `-install-port`, for example to use port 81: `docker-dev -install
+-install-port 81`.
 
-*NOTE:* If you installed docker-dev v0.2, please run `sudo docker-dev -cleanup` to remove firewall rules that docker-dev no longer uses (and will conflict with docker-dev working).
+*NOTE:* If you installed docker-dev v0.2, please run `sudo docker-dev
+-cleanup` to remove firewall rules that docker-dev no longer uses (and
+will conflict with docker-dev working).
 
-If you're currently using `pow`, docker-dev taking control of `.test` will break it. If you want to just try out docker-dev and leave pow working, pass `-d pdev` on `-install` to use the `.pdev` as an alternate development TLD.
+If you're currently using `pow` or `puma-dev`, docker-dev taking control
+of `.test` will break it. If you want to just try out docker-dev and
+leave pow working, pass `-d docker` on `-install` to use the `.docker`
+as an alternate development TLD.
 
-*NOTE:* If you had pow installed before in the system, please make sure to run pow's uninstall script. Read more details in [the pow manual](http://pow.cx/manual.html#section_1.2).
+*NOTE:* If you had pow installed before in the system, please make sure
+to run pow's uninstall script. Read more details in [the pow
+manual](http://pow.cx/manual.html#section_1.2).
 
 ### Uninstall
 
 Run: `docker-dev -uninstall`
 
-*NOTE:* If you passed custom options (e.g. `-d test:localhost`) to `-setup`, be sure to pass them to `-uninstall` as well. Otherwise `/etc/resolver/*` might contain orphaned entries.
+*NOTE:* If you passed custom options (e.g. `-d test:localhost`) to
+`-setup`, be sure to pass them to `-uninstall` as well. Otherwise
+`/etc/resolver/*` might contain orphaned entries.
 
 ### Logging
 
-When docker-dev is installed as a user agent (the default mode), it will log output from itself and the apps to `~/Library/Logs/docker-dev.log`. You can refer to there to find out if apps have started and look for errors.
+When docker-dev is installed as a user agent (the default mode), it will
+log output from itself and the apps to `~/Library/Logs/docker-dev.log`.
+You can refer to there to find out if apps have started and look for
+errors.
 
-In the future, docker-dev will provide an integrated console for this log output.
+In the future (probably whenever puma-dev adds it), docker-dev will
+provide an integrated console for this log output.
 
 ------
 
 ## Linux Support
 
-docker-dev supports Linux but requires the following additional installation steps to be followed to make all the features work (`-install` and `-setup` flags for Linux are not provided):
+docker-dev supports Linux but requires the following additional
+installation steps to be followed to make all the features work
+(`-install` and `-setup` flags for Linux are not provided):
 
 ### docker-dev root CA
 
-The docker-dev root CA is generated (in `~/.docker-dev-ssl/`), but you will need to install and trust this as a Certificate Authority by adding it to your operating system's certificate trust store, or by trusting it directly in your favored browser (as some browsers will not share the operating system's trust store).
+The docker-dev root CA is generated (in `~/.docker-dev-ssl/`), but you
+will need to install and trust this as a Certificate Authority by adding
+it to your operating system's certificate trust store, or by trusting it
+directly in your favored browser (as some browsers will not share the
+operating system's trust store).
 
 ### Domains (.test or similar)
 
-In order for requests to the `.test` (or any other custom) domain to resolve, install the [dev-tld-resolver](https://github.com/tubbo/dev-tld-resolver), making sure to use `test` (or the custom TLD you want to use) when configuring TLDs.
+In order for requests to the `.test` (or any other custom) domain to
+resolve, install the
+[dev-tld-resolver](https://github.com/puma-dev/dev-tld-resolver), making
+sure to use `test` (or the custom TLD you want to use) when configuring
+TLDs.
 
 ### Port 80/443 binding
 
-Linux prevents applications from binding to ports lower that 1024 by default. You don't need to bind to port 80/443 to use docker-dev but it makes using the `.test` domain much nicer (e.g. you'll be able to use the domain as-is in your browser rather than providing a port number)
+Linux prevents applications from binding to ports lower that 1024 by
+default. You don't need to bind to port 80/443 to use docker-dev but it
+makes using the `.test` domain much nicer (e.g. you'll be able to use
+the domain as-is in your browser rather than providing a port number)
 
 There are 2 options to allow docker-dev to listen on port 80 and 443:
 
@@ -122,45 +146,50 @@ There is a shortcut for binding to 80/443 by passing `-sysbind` to docker-dev wh
 
 ### Systemd (running docker-dev in the background)
 
-On Linux, docker-dev will not automatically run in the background (as per the MacOS `-install` script); you'll need to [run it in the foreground](#running-in-the-foreground). You can set up a system daemon to start up docker-dev in the background yourself.
+On Linux, docker-dev will not automatically run in the background (as
+per the MacOS `-install` script); you'll need to [run it in the
+foreground](#running-in-the-foreground). You can set up a system daemon
+to start up docker-dev in the background yourself.
 
-1. Create `/lib/systemd/system/docker-dev.service` and put in the following:
-  ```
-  [Unit]
-  After=network.target
+First, create `/lib/systemd/system/docker-dev.service` and put in the following:
 
-  [Service]
-  User=$USER
-  ExecStart=/path/to/docker-dev -sysbind
-  Restart=on-failure
+```
+[Unit]
+After=network.target
 
-  [Install]
-  WantedBy=multi-user.target
-  ```
+[Service]
+User=$USER
+ExecStart=/path/to/docker-dev -sysbind
+Restart=on-failure
 
-  Replace `path/to/docker-dev` with an absolute path to docker-dev
-  Replace the `$USER` variable with the name of the user you want to run under.
+[Install]
+WantedBy=multi-user.target
+```
 
-2. Start docker-dev using systemd:
-  ```shell
-  sudo systemctl daemon-reload
-  sudo systemctl enable docker-dev
-  sudo systemctl start docker-dev
-  ```
+Replace `path/to/docker-dev` with an absolute path to docker-dev
+Replace the `$USER` variable with the name of the user you want to run under.
+
+Youc an now start docker-dev using systemd:
+
+```
+sudo systemctl daemon-reload
+sudo systemctl enable docker-dev
+sudo systemctl start docker-dev
+```
 
 ------
 
 ## Usage
 
-First, choose a port to run your app on and set it in `.env` in your
-app's root directory:
-
-```bash
-PORT=3001
-```
-
-In `docker-compose.yml`, expose the port on the container you want to
-serve:
+When you request your application via the `.test` domain, `docker-dev`
+will launch `docker-compose` in the root directory of your app and proxy
+connections to a random port in the 3001-3999 range. This port is
+different every time, so it can't be hardcoded into a project's
+configuration. Instead, `docker-dev` passes this randomly generated port
+number as `$PORT` in the environment when launching `docker-compose`. To
+send traffic from a container in your services to the domain name when
+it's requested, make sure the port in your app is exposed as `$PORT`
+like so:
 
 ```yaml
 version: '3'
@@ -184,7 +213,8 @@ You have the ability to configure most of the values that you'll use day-to-day.
 
 ### Advanced Configuration
 
-docker-dev supports loading environment variables before tubbo starts. It checks for the following files in this order:
+docker-dev supports loading environment variables before `docker-compose` starts.
+It checks for the following files in this order:
 
 * `~/.powconfig`
 * `.env`
@@ -202,17 +232,20 @@ code lives in, like so (command example is from macOS):
 
     rm -rf ~/.docker-dev && ln -s ~/Code ~/.docker-dev
 
-This will cause
+This alleviates you from having to run `link` every time you create a
+new app.
 
 ### Important Note On Ports and Domain Names
 
 * Default privileged ports are 80 and 443
 * Default domain is `.test`. (don't use `.dev` and `.foo`, as they are now real TLDs)
-* Using pow? To avoid conflicts, use different ports and domain or [uninstall pow properly](http://pow.cx/manual.html#section_1.2).
+* Using pow or puma-dev? To avoid conflicts, use different ports and
+  domain or [uninstall pow properly](http://pow.cx/manual.html#section_1.2).
 
 ### Restarting
 
-If you would like to have docker-dev restart *a specific app*, you can run `touch tmp/restart.txt` in that app's directory.
+If you would like to have docker-dev restart *a specific app*, you can
+run `touch tmp/restart.txt` in that app's directory.
 
 ### Purging
 
@@ -253,12 +286,13 @@ works by naming the app with a hyphen (`-`) where you'd have a slash
 ### Proxy support
 
 docker-dev can also proxy any request from a nice dev domain to another
-app. To do so, just write a file (rather than a symlink'd directory)
-into `~/.docker-dev` with the connection information.
+app over a dedicated port number. To do so, just write a file (rather
+than a symlink'd directory) into `~/.docker-dev` with the connection
+information.
 
 For example, to have port 9292 show up as `awesome.test`: `echo 9292 > ~/.docker-dev/awesome`.
 
-Or to proxy to another host: `echo 10.3.1.2:9292 > ~/.docker-dev/awesome-elsewhere`.
+Or to proxy to another host: `echo 10.3.1.2:9292 > ~/.docker-dev/elsewhere`.
 
 ### HTTPS
 
@@ -272,7 +306,7 @@ when access to them is requested. It automatically happens, no
 configuration necessary. The certs are stored entirely in memory so
 future restarts of docker-dev simply generate new ones.
 
-When `-install` is used (and let's be honest, that's how you want to use
+When `-install` is used (and let's be honest, that's how you want to install
 docker-dev), then it listens on port 443 by default (configurable with
 `-install-https-port`) so you can just do `https://blah.test` to access
 your app via https.
@@ -290,7 +324,13 @@ websocket connections while in development.
 
 *Do not use disable_request_forgery_protection in production!*
 
-Or you can add something like `config.action_cable.allowed_request_origins = /(\.test$)|^localhost$/` to allow anything under `.test` as well as `localhost`.
+Or you can add something like:
+
+```ruby
+config.action_cable.allowed_request_origins = /(\.test$)|^localhost$/`
+```
+
+...to allow anything under `.test` as well as `localhost`.
 
 ### xip.io
 
@@ -300,14 +340,9 @@ away, so that your `test` app can be accessed as `test.A.B.C.D.xip.io`.
 ### Run multiple domains
 
 docker-dev allows you to run multiple local domains. Handy if you're
-working with more than one client. Simply set up docker-dev like so:
+working with more than one client, or if you're simultaneously running
+`puma-dev` on the same machine. Simply set up docker-dev like so:
 `docker-dev -install -d first-domain:second-domain`
-
-### Static file support
-
-Like pow, docker-dev support serving static files. If an app has a
-`public` directory, then any urls that match files within that directory
-are served. The static files have priority over the app.
 
 ### Subdomains support
 
