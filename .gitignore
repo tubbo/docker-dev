@@ -4,3 +4,4 @@ vendor/pkg/
 /docker-dev
 /docker-dev-*zip
 /docker-dev-*tar.gz
+/tmp
