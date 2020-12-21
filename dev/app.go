@@ -384,8 +384,6 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 
 		var id string
 
-		expectedContainerName := fmt.Sprintf("/%s_web_1", app.Name)
-
 		defer ticker.Stop()
 
 		for {
@@ -395,12 +393,8 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 				return err
 			}
 
-			for _, container := range containers {
-				for _, containerName := range container.Names {
-					if containerName == expectedContainerName {
-						id = container.ID
-					}
-				}
+			if id == "" {
+				id = findContainerID(uint16(app.Port), containers)
 			}
 
 			select {
@@ -436,7 +430,7 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 						case types.Unhealthy:
 							app.eventAdd("dying_on_start")
 							fmt.Printf("! Detecting app '%s' dying on start\n", name)
-							return fmt.Errorf("the %s container is unhealthy, check your logs for more details", expectedContainerName)
+							return fmt.Errorf("the %s container is unhealthy, check your logs for more details", container.Name)
 						}
 					} else {
 						app.eventAdd("app_ready")
@@ -693,4 +687,16 @@ func (pool *AppPool) Purge() {
 	}
 
 	pool.Events.Add("apps_purged")
+}
+
+func findContainerID(publicPort uint16, containers []types.Container) string {
+	for _, container := range containers {
+		for _, containerPort := range container.Ports {
+			if containerPort.PublicPort == publicPort {
+				return container.ID
+			}
+		}
+	}
+
+	return ""
 }
