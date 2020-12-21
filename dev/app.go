@@ -394,13 +394,7 @@ func (pool *AppPool) LaunchApp(name, dir string) (*App, error) {
 			}
 
 			if id == "" {
-				for _, container := range containers {
-					for _, containerPort := range container.Ports {
-						if containerPort.PublicPort == uint16(app.Port) {
-							id = container.ID
-						}
-					}
-				}
+				id = findContainerID(uint16(app.Port), containers)
 			}
 
 			select {
@@ -693,4 +687,16 @@ func (pool *AppPool) Purge() {
 	}
 
 	pool.Events.Add("apps_purged")
+}
+
+func findContainerID(publicPort uint16, containers []types.Container) string {
+	for _, container := range containers {
+		for _, containerPort := range container.Ports {
+			if containerPort.PublicPort == publicPort {
+				return container.ID
+			}
+		}
+	}
+
+	return ""
 }
